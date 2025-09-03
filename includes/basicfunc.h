@@ -2,7 +2,7 @@
 #include"includes.h"
 
 enum ShitTypes {authors, titles, years, trans, publish, pushed, types_count};
-enum ComanndTypes {add, list, remove_index, clear, output_index, help, command_count};
+enum ComanndTypes {add, list, remove_index, clear, output_index, citation, help, command_count};
 //"remove_index" and "output_index" = "delete" and "export"
 
 //use "unsigned" when possible

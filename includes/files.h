@@ -14,6 +14,8 @@ unsigned int pt[types];//pushed for how many times, starts from zero
 string shit, info;//used when reading files
 unsigned int StartNum;//StartNum starts from 1, while pt starts from 0
 
+string page_num[2];//page_num[] notes down the starting and ending page
+
 string filenames[all_types];//filenames[] - filenames of local files
 string insert_info[types];//insert_info[] - used in edit_content()
 string command_names[command_types];//abbreviation of commands
@@ -34,16 +36,20 @@ void print_content(unsigned char PrintWhichContent, unsigned int PrintContentNum
 //transform user's author input to APA format (e.g. Carl Schmitt -> Schmitt, C.)
 vector<string> NameParts;
 string SinglePart;
-string APA_author_format(unsigned int FormatAuthorWhich) {
-	if (content[authors][FormatAuthorWhich].empty())return "";
-	istringstream iss(content[authors][FormatAuthorWhich]);
+string APA_author_format(string FormatAuthorWhich) {
+	if (FormatAuthorWhich.empty())return "";
+	//clean space from the beginning and the ending of the string
+	FormatAuthorWhich.erase(0, FormatAuthorWhich.find_first_not_of(" \t\n\r\f\v"));
+	FormatAuthorWhich.erase(FormatAuthorWhich.find_last_not_of(" \t\n\r\f\v") + 1);
+
+	istringstream iss(FormatAuthorWhich);
 	//get given name
 	while (iss >> SinglePart) {
 		NameParts.push_back(SinglePart);
 	}
 	//if the name is not in the format of "GivenName FamilyName"
 	if (NameParts.size() < 2) {
-		return content[authors][FormatAuthorWhich];
+		return FormatAuthorWhich;
 	}
 	//get surname
 	string surname = NameParts.back();
@@ -65,7 +71,7 @@ string APA_author_format(unsigned int FormatAuthorWhich) {
 	}
 	//remove_index the space at the end
 	if (!givenNameInitials.empty()) {
-	    givenNameInitials.pop_back();
+		givenNameInitials.pop_back();
 	}
 	//result
 	return surname + ", " + givenNameInitials;
@@ -185,8 +191,7 @@ string inbuf;//additional string to load text when reading a file
 string eat_certain_shit(unsigned char EatWhichCertain, unsigned int CertainLine) {//**CertainLine must start from zero!**
 	if (!check_empty(EatWhichCertain)) {
 		ReadLine = {""};
-		while (!eat.eof()) {
-			getline(eat, inbuf, '\n');
+		while (getline(eat, inbuf)) {
 			ReadLine.push_back(inbuf);
 		}
 		return ReadLine[CertainLine];
@@ -198,9 +203,9 @@ unsigned int ManyLines;//for eat_shit() and find_lines();
 void eat_shit(unsigned char EatWhich) {//open file and load them
 	if (!check_empty(EatWhich, false)) {//if it's not empty, and have been edited, then eat shit
 		ManyLines = 0;
-		while (!eat.eof() && (ManyLines < pt[EatWhich])) { //make sure that the file will be fully read if possible
+		while (getline(eat, info)) { //make sure that the file will be fully read if possible
 			content[EatWhich][ManyLines] = info;
-			getline(eat, info, '\n');//always realize that check_empty() already used getline once
+			//always realize that check_empty() already used getline once
 			read_and_write(EatWhich);
 			ManyLines++;
 			//stop reading as soon as it reaches the end of written content,
@@ -250,6 +255,8 @@ void reset() {
 	command_full_names[clear] = "clear";
 	command_names[output_index] = "e";
 	command_full_names[output_index] = "export";
+	command_names[citation] = "citation";
+	command_full_names[citation] = "c";
 	command_names[help] = "h";
 	command_full_names[help] = "help";
 
@@ -267,7 +274,7 @@ void shit_app(unsigned char ShitAppWhat) {//make sure ShitWhat != pushed (ShitAp
 //rewrite the whole file
 void shit_re(unsigned char ShitReWhat) {//ShitReWhat ∈ [author, publish]
 	rewrite_shit(ShitReWhat);
-	for (int i = 0; i < pt[ShitReWhat] - 1; i++) {
+	for (int i = 0; i < pt[ShitReWhat]; i++) {
 		poop << content[ShitReWhat][i] << "\n";
 	}
 	poop.close();
@@ -295,15 +302,15 @@ void pushin(unsigned char PushWhich, string PushInWhich) {
 }
 
 void build_shits() {//create all the text files, if they do not exist yet
-    if (!fs::exists(local_file_path)) {//check if the dir is empty
-        fs::create_directories(local_file_path);
-    }
-    for (int i = 0; i < types_count; ++i) {
-        ifstream file(filenames[i]);
-        if (!file.good()) {
-            ofstream outfile(filenames[i]);
-            outfile.close();
-        }
-        file.close();
-    }
+	if (!fs::exists(local_file_path)) {//check if the dir is empty
+		fs::create_directories(local_file_path);
+	}
+	for (int i = 0; i < types_count; ++i) {
+		ifstream file(filenames[i]);
+		if (!file.good()) {
+			ofstream outfile(filenames[i]);
+			outfile.close();
+		}
+		file.close();
+	}
 }

@@ -54,7 +54,7 @@ void deal_with_StartNum(unsigned char DealWithWhich, string SNNotice) {
 
 void new_startnum(unsigned char NewStartType) {
 	deal_with_StartNum(NewStartType, "Input the place you want to start");
-	if (!quit_edit && content[NewStartType][StartNum] != "") {//if the new starting position is not empty
+	if (!quit_edit && pt[NewStartType] >= StartNum) {//if the new starting position is not empty
 		cout << "This place is occupied. Edit anyway?";
 		confirmation();
 		confirmation_loop_in_new_startnum(NewStartType);//avoid nesting
@@ -62,6 +62,9 @@ void new_startnum(unsigned char NewStartType) {
 }
 
 void write_after_editing(unsigned char WriteAfterWhich) {//post-editing process
+	if (WriteAfterWhich == authors && !shit.empty()) {
+		shit = APA_author_format(shit);
+	}
 	if (StartNum < pt[WriteAfterWhich]) {
 		content[WriteAfterWhich][StartNum] = shit;//no need to add pt[]
 		shit_re(WriteAfterWhich);
@@ -98,15 +101,14 @@ void edit_content(unsigned char EditWhichContent) {
 	}
 	hyphen();
 	if (quit_edit)return;
-	if (content[EditWhichContent][StartNum] != "")partial_APA();
+	if (StartNum < pt[EditWhichContent] && content[EditWhichContent][StartNum] != "")partial_APA();
 	cout << "\n(Editing" << insert_info[EditWhichContent];
-	if (EditWhichContent == authors) cout << " - FamilyName + SPACE + FirstLetterOfGivenName";
+	if (EditWhichContent == authors) cout << " - GivenName Space FamilyName";
 	cout << "):";
-	shit.clear();
+	//shit.clear();
+	if (cin.fail()) cin.clear();
+	//cin.ignore(1000, '\n');
 	getline(cin, shit);
-	/*if (EditWhichContent == authors) {
-		content[authors][StartNum] = APA_author_format(StartNum);
-	}*/
 	write_after_editing(EditWhichContent);
 }
 
@@ -119,15 +121,10 @@ void _biblio() {//F)Check bibliography
 	}
 }
 
-string page_num[2];//page_num[] notes down the starting and ending page
 void cita_page_insert(bool InsertStart) {
-	isbadint = true;
-	while (isbadint) {
-		if (InsertStart)cout << "Starting page:";
-		else cout << "Ending page:";
-		cin >> page_num[InsertStart];
-		badint();
-	}
+	if (InsertStart)cout << "Starting page:";
+	else cout << "Ending page:";
+	cin >> page_num[InsertStart];
 }
 
 void _cita() {//G)Check full list of citation
