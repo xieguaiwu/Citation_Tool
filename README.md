@@ -12,15 +12,16 @@ There are two kinds of user interface: **WCT** and **LCT**.
 1. **WCT**: having an interface using keyboard keys to navigate, suitable for muti-window performance 
 2. **LCT**: traditional pure text API
 
-### LCT-Usage
-Usage: LCT <command> [options]<br>
-Commands:<br>
-  add/a <author> <title> <year> [translator] [publisher]]<br>
-  list/l [index]]<br>
-  delete/d <index>]<br>
-  clear/c]<br>
-  export/e <filename> [format=APA]]<br>
-  help/h]<br>
+### LCT version - Usage
+Usage: CitationTool <command> [options]
+Commands:
+  add/a <author (GivenName Space FamilyName)> <title> <year> [translator] [publisher]
+  list/l [index]
+  delete/d <index>
+  clear/cl
+  export/e <filename> [format=APA]
+  citation/c <index> <page number (start)> [page number (end)]
+  help/h
 
 ---
 
