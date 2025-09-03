@@ -13,7 +13,6 @@ unsigned int pt[types];//pushed for how many times, starts from zero
 
 string shit, info;//used when reading files
 unsigned int StartNum;//StartNum starts from 1, while pt starts from 0
-
 string page_num[2];//page_num[] notes down the starting and ending page
 
 string filenames[all_types];//filenames[] - filenames of local files
@@ -34,56 +33,63 @@ void print_content(unsigned char PrintWhichContent, unsigned int PrintContentNum
 }
 
 //transform user's author input to APA format (e.g. Carl Schmitt -> Schmitt, C.)
-vector<string> NameParts;
-string SinglePart;
 string APA_author_format(string FormatAuthorWhich) {
+	vector<string> NameParts;
+	string SinglePart;
+
 	if (FormatAuthorWhich.empty())return "";
-	//clean space from the beginning and the ending of the string
-	FormatAuthorWhich.erase(0, FormatAuthorWhich.find_first_not_of(" \t\n\r\f\v"));
-	FormatAuthorWhich.erase(FormatAuthorWhich.find_last_not_of(" \t\n\r\f\v") + 1);
 
 	istringstream iss(FormatAuthorWhich);
-	//get given name
+
+	//devide name into different parts
 	while (iss >> SinglePart) {
 		NameParts.push_back(SinglePart);
 	}
-	//if the name is not in the format of "GivenName FamilyName"
+
+	//return the name if it is too short
 	if (NameParts.size() < 2) {
 		return FormatAuthorWhich;
 	}
+
 	//get surname
 	string surname = NameParts.back();
-	//make sure that only the first letter is capital
+
+	//process: first letter capital, other letters lower case
 	if (!surname.empty()) {
 		surname[0] = toupper(surname[0]);
 		for (size_t i = 1; i < surname.size(); i++) {
 			surname[i] = tolower(surname[i]);
 		}
+		//make other part of the name lower case
 	}
-	//deal with anything other than surname
+
+	//deal with name and abbreviation
 	string givenNameInitials;
 	for (size_t i = 0; i < NameParts.size() - 1; i++) {
 		if (!NameParts[i].empty()) {
-			//Only add capital letter of the given name
 			char initial = toupper(NameParts[i][0]);
 			givenNameInitials += initial;
 		}
 	}
-	//remove_index the space at the end
-	if (!givenNameInitials.empty()) {
+
+	//delete space at the end
+	if (!givenNameInitials.empty() && givenNameInitials[givenNameInitials.size() - 1] == ' ') {
 		givenNameInitials.pop_back();
 	}
-	//result
+
+	//return formatted name
 	return surname + ", " + givenNameInitials;
 }
 
 string cita_author(unsigned int ChangeNum) {//change author format from "FamilyName GivenName" to "FamilyName"
+	vector<string> CitaAuthorsNameParts;
+	string CitaAuthorSinglePart;
 	istringstream iss(content[authors][ChangeNum]);
-	while (iss >> SinglePart) {//separate each SinglePart of the full name
-		NameParts.push_back(SinglePart);
+	while (iss >> CitaAuthorSinglePart) {//separate each SinglePart of the full name
+		CitaAuthorsNameParts.push_back(CitaAuthorSinglePart);
 	}
-	if (!NameParts.empty()) {//
-		return NameParts[0];
+	if (!CitaAuthorsNameParts.empty()) {//
+		return CitaAuthorsNameParts[0];
 	}
 	else return "";
 }
@@ -135,7 +141,6 @@ void APA_cita(unsigned int WhichCita, string APACitaStart, string APACitaEnd) {/
 //after using this function, remember to write "eat.close()" in the end
 void open_shit(unsigned char OpenWhich) {
 	eat.open(filenames[OpenWhich], ios::in | ios::app);//open to append
-	getline(eat, info);
 }
 
 void write_shit_app(unsigned char WriteAppWhich) {
@@ -150,10 +155,16 @@ void rewrite_shit(unsigned char RewriteWhich) {
 //check if the file is empty.
 //use .open() and .close() less frequently
 bool check_empty(unsigned char IsEmpty, bool CloseAfter = true) {
-	open_shit(IsEmpty);
-	if (CloseAfter)eat.close();
-	if (info == "")return true;
-	else return false;
+	ifstream temp_file(filenames[IsEmpty]);
+	if (!temp_file.is_open()) return true;
+	//if file do not exist
+
+	//check if the file is empty
+	temp_file.seekg(0, ios::end);
+	bool isEmpty = temp_file.tellg() == 0;
+	temp_file.close();
+
+	return isEmpty;
 }
 
 bool is_directory(string CheckDirPath) {//see if a directory is empty
@@ -189,41 +200,68 @@ void read_and_write(unsigned char Read_WriteWhich) {
 vector<string> ReadLine;
 string inbuf;//additional string to load text when reading a file
 string eat_certain_shit(unsigned char EatWhichCertain, unsigned int CertainLine) {//**CertainLine must start from zero!**
-	if (!check_empty(EatWhichCertain)) {
-		ReadLine = {""};
-		while (getline(eat, inbuf)) {
-			ReadLine.push_back(inbuf);
-		}
-		return ReadLine[CertainLine];
+	ifstream temp_file(filenames[EatWhichCertain]);
+	if (!temp_file.is_open()) {
+		return "";
 	}
-	else return "";
+
+	vector<string> lines;
+	string line;
+	while (getline(temp_file, line)) {
+		lines.push_back(line);
+	}
+	temp_file.close();
+
+	if (CertainLine < lines.size()) {
+		return lines[CertainLine];
+	}
+	else {
+		return "";
+	}
 }
 
 unsigned int ManyLines;//for eat_shit() and find_lines();
 void eat_shit(unsigned char EatWhich) {//open file and load them
-	if (!check_empty(EatWhich, false)) {//if it's not empty, and have been edited, then eat shit
-		ManyLines = 0;
-		while (getline(eat, info)) { //make sure that the file will be fully read if possible
-			content[EatWhich][ManyLines] = info;
-			//always realize that check_empty() already used getline once
-			read_and_write(EatWhich);
-			ManyLines++;
-			//stop reading as soon as it reaches the end of written content,
-			//**which should be pt[] - 1**
-		}
-		//info has already contained some text because of the open_shit() in check_empty()
+	eat.open(filenames[EatWhich]);
+	if (!eat.is_open()) {
+		cout << "Warning: Could not open file\n";
+		return;
+	}
+
+	ManyLines = 0;
+	while (getline(eat, info) && ManyLines < books) {
+		content[EatWhich][ManyLines] = info;
+		ManyLines++;
 	}
 	eat.close();
+
+	pt[EatWhich] = ManyLines;
 }
 
 void reset_load() {
-	if (!check_empty(pushed, false)) {//process pushed.txt solely
-		if (!info.empty()) pt[0] = stoi(info);//check_empty() has already let read a line
-		for (int i = 1; i < types && getline(eat, info); i++) {//therefore, the circulation must be (types-1) times
-			if (!info.empty()) pt[i] = stoi(info);
+	eat.open(filenames[pushed]);
+	if (eat.is_open()) {
+		for (int i = 0; i < types && getline(eat, info); i++) {
+			if (!info.empty()) {
+				try {
+					pt[i] = stoi(info);
+				} catch (const std::invalid_argument&) {
+					cout << "Warning: Invalid data in pushed.txt for type\n";
+					pt[i] = 0;
+				}
+			} else {
+				pt[i] = 0;
+			}
+		}
+		eat.close();
+	} else {
+		//if there are no local files, then set pt[] to zero
+		for (int i = 0; i < types; i++) {
+			pt[i] = 0;
 		}
 	}
-	eat.close();
+
+	//then read other files
 	for (int i = 0; i < types; i++) {//read all the local files when program is started
 		eat_shit(i);
 	}
@@ -251,12 +289,12 @@ void reset() {
 	command_full_names[list] = "list";
 	command_names[remove_index] = "d";
 	command_full_names[remove_index] = "delete";
-	command_names[clear] = "c";
+	command_names[clear] = "cl";
 	command_full_names[clear] = "clear";
 	command_names[output_index] = "e";
 	command_full_names[output_index] = "export";
-	command_names[citation] = "citation";
-	command_full_names[citation] = "c";
+	command_names[citation] = "c";
+	command_full_names[citation] = "citation";
 	command_names[help] = "h";
 	command_full_names[help] = "help";
 

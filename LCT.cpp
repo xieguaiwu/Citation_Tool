@@ -6,6 +6,7 @@ void handle_list_command(int argc, char* argv[]);
 void handle_delete_command(int argc, char* argv[]);
 void handle_clear_command();
 void handle_export_command(int argc, char* argv[]);
+void handle_cita_command(int argc, char* argv[]);
 
 int main(int argc, char* argv[]) {
     build_shits();
@@ -23,17 +24,26 @@ int main(int argc, char* argv[]) {
 
     if (command == command_names[add] || command == command_full_names[add]) {
         handle_add_command(argc, argv);
-    } else if (command == command_names[list] || command == command_full_names[list]) {
+    }
+    else if (command == command_names[list] || command == command_full_names[list]) {
         handle_list_command(argc, argv);
-    } else if (command == command_names[remove_index] || command == command_full_names[remove_index]) {
+    }
+    else if (command == command_names[remove_index] || command == command_full_names[remove_index]) {
         handle_delete_command(argc, argv);
-    } else if (command == command_names[clear] || command == command_full_names[clear]) {
+    }
+    else if (command == command_names[clear] || command == command_full_names[clear]) {
         handle_clear_command();
-    } else if (command == command_names[output_index] || command == command_full_names[output_index]) {
+    }
+    else if (command == command_names[output_index] || command == command_full_names[output_index]) {
         handle_export_command(argc, argv);
-    } else if (command == command_names[help] || command == command_full_names[help]) {
+    }
+    else if (command == command_names[citation] || command == command_full_names[citation]) {
+        handle_cita_command(argc, argv);
+    }
+    else if (command == command_names[help] || command == command_full_names[help]) {
         print_usage();
-    } else {
+    }
+    else {
         cout << "Unknown command: " << command << endl;
         print_usage();
         return 1;
@@ -46,7 +56,7 @@ void print_usage() {
     cout << "Usage: CitationTool <command> [options]\n";
     cout << "Commands:\n";
     cout << "  " << command_full_names[add] << "/" << command_names[add];
-    cout << " <author> <title> <year> [translator] [publisher]\n";
+    cout << " <author (GivenName Space FamilyName)> <title> <year> [translator] [publisher]\n";
     cout << "  " << command_full_names[list] << "/" << command_names[list];
     cout << " [index]\n";
     cout << "  " << command_full_names[remove_index] << "/" << command_names[remove_index];
@@ -55,6 +65,8 @@ void print_usage() {
     cout << "\n";
     cout << "  " << command_full_names[output_index] << "/" << command_names[output_index];
     cout << " <filename> [format=APA]\n";
+    cout << "  " << command_full_names[citation] << "/" << command_names[citation];
+    cout << " <index> <page number (start)> [page number (end)]\n";
     cout << "  " << command_full_names[help] << "/" << command_names[help];
     cout << "\n";
 }
@@ -67,6 +79,8 @@ void handle_add_command(int argc, char* argv[]) {
     }
 
     string author = argv[2];
+    //deal with author name format
+    author = APA_author_format(author);
     string title = argv[3];
     string year = argv[4];
     string translator = (argc > 5) ? argv[5] : "";
@@ -104,7 +118,8 @@ void handle_list_command(int argc, char* argv[]) {
             return;
         }
         APA_print(index - 1);
-    } else {
+    }
+    else {
         //show all indexs
         standard_APA(titles);
     }
@@ -178,4 +193,27 @@ void handle_export_command(int argc, char* argv[]) {
     cout.rdbuf(coutbuf);
     outfile.close();
     cout << "Citations exported to " << filename << " successfully!\n";
+}
+
+void handle_cita_command(int argc, char* argv[]) {
+    if (pt[titles] == 0) {
+        cout << "Error: generate citation requires a reference.\n";
+        return;
+    }
+    if (argc < 4 || argc > 5) {
+        cout << "Error: citation command requires index and start page, and optional end page\n";
+        print_usage();
+        return;
+    }
+
+    int index = stoi(argv[2]);
+    if (index < 1 || index > pt[titles]) {
+        cout << "Error: Index out of range. Valid range: 1-" << pt[titles] << endl;
+        return;
+    }
+
+    page_num[0] = argv[3];
+    page_num[1] = (argc == 5) ? argv[4] : page_num[0];
+
+    APA_cita(index - 1, page_num[0], page_num[1]); //index starts from 1
 }
