@@ -224,7 +224,7 @@ unsigned int ManyLines;//for eat_shit() and find_lines();
 void eat_shit(unsigned char EatWhich) {//open file and load them
 	eat.open(filenames[EatWhich]);
 	if (!eat.is_open()) {
-		cout << "Warning: Could not open file\n";
+		//cout << "Warning: Could not open file\n";
 		return;
 	}
 
